@@ -53,6 +53,4 @@ subtest ev => sub {
     }
 };
 
-Test2::IPC::cull();
-
 done_testing;
