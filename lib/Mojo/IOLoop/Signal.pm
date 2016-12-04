@@ -136,7 +136,7 @@ Mojo::IOLoop::Signal inherits all events from L<Mojo::EventEmitter> and can emit
 
 =head2 signal names such as TERM, INT, QUIT, ...
 
-See C<< $Config{sig_name} >> for complete lists
+See C<< $Config{sig_name} >> for a complete list.
 
   $ perl -MConfig -e 'print $Config{sig_name}'
   ZERO HUP INT QUIT ILL TRAP ABRT EMT FPE KILL BUS SEGV SYS PIPE ALRM TERM URG STOP TSTP CONT CHLD TTIN TTOU IO XCPU XFSZ VTALRM PROF WINCH INFO USR1 USR2 IOT
