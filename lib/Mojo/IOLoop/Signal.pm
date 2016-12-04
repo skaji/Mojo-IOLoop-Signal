@@ -11,10 +11,12 @@ our $VERSION = '0.001';
 my %SIGNAME = map { $_ => 1 } split /\s+/, $Config{sig_name};
 our %EXCLUDE = map { $_ => 1 } qw(PIPE KILL);
 
-my $SELF = __PACKAGE__->_new;
-sub _instance { ref $_[0] ? $_[0] : $SELF }
+sub _instance {
+    state $SELF = __PACKAGE__->_new;
+    ref $_[0] ? $_[0] : $SELF
+}
 
-sub singleton { $SELF }
+sub singleton { _instance(shift) }
 
 sub new { die "Cannot construct Mojo::IOLoop::Signal objects. It's a singleton.\n" }
 
