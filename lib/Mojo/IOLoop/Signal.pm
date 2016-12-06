@@ -70,11 +70,7 @@ sub on {
     my ($self, $name, $cb) = (_instance(shift), @_);
     if ($self->_is_signame($name) and !exists $self->{keep}{$name}) {
         if ($self->{is_ev}) {
-            $self->{keep}{$name} = EV::signal($name => sub {
-                Mojo::IOLoop->timer(0 => sub {
-                    $self->emit($name, $name);
-                });
-            });
+            $self->{keep}{$name} = EV::signal($name => sub { $self->emit($name, $name) });
         } else {
             if (!$self->{write}) {
                 pipe my $read, my $write;
