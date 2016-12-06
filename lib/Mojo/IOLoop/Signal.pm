@@ -85,7 +85,11 @@ sub on {
                 $self->{read}->start;
             }
             $self->{keep}{$name} = $SIG{$name} || 'DEFAULT';
-            $SIG{$name} = sub { syswrite $self->{write}, "$name\n" or warn "pipe write: $!" };
+            $SIG{$name} = sub {
+                Mojo::IOLoop->timer(0 => sub {
+                    syswrite $self->{write}, "$name\n" or warn "pipe write: $!";
+                });
+            };
         }
     }
     $self->SUPER::on($name, $cb);
