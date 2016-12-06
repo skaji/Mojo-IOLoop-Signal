@@ -7,9 +7,12 @@ use Mojo::IOLoop::Signal;
 
 warn "-> Please send me TERM signal by: kill $$\n";
 
-Mojo::IOLoop::Signal->once(TERM => sub {
+my $i = 0;
+Mojo::IOLoop::Signal->on(TERM => sub {
     my ($self, $name) = @_;
-    warn "Got $name signal\n";
+    $i++;
+    warn "Got $name signal $i/5\n";
+    $i == 5 and Mojo::IOLoop::Signal->unsubscribe('TERM');
 });
 
 Mojo::IOLoop->start unless Mojo::IOLoop->is_running;
