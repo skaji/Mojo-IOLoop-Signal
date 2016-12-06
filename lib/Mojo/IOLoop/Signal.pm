@@ -76,6 +76,7 @@ sub on {
                 pipe my $read, my $write;
                 $write->autoflush(1);
                 $self->{read} = Mojo::IOLoop::Stream->new($read),
+                $self->{read}->timeout(0);
                 $self->{write} = $write;
                 weaken $self;
                 $self->{read}->on(read => sub {
