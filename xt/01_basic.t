@@ -17,7 +17,6 @@ my $test = sub {
     is $got[0], 'TERM';
     is $got[1], 'INT';
     is $got[2], 'TERM';
-    done_testing;
     exit;
 };
 
