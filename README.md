@@ -1,5 +1,5 @@
 [![Actions Status](https://github.com/skaji/Mojo-IOLoop-Signal/workflows/linux/badge.svg)](https://github.com/skaji/Mojo-IOLoop-Signal/actions)
-[![Actions Status](https://github.com/skaji/Mojo-IOLoop-Signal/workflows/mac/badge.svg)](https://github.com/skaji/Mojo-IOLoop-Signal/actions)
+[![Actions Status](https://github.com/skaji/Mojo-IOLoop-Signal/workflows/macos/badge.svg)](https://github.com/skaji/Mojo-IOLoop-Signal/actions)
 
 # NAME
 
