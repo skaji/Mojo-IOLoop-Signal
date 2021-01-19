@@ -32,10 +32,11 @@ sub _new {
         die "Unsupported reactor: " . ref($reactor);
     }
     bless { 
-        keep    => {}, 
+        pid     => $$,
         is_ev   => $is_ev, 
-        signals => [],
         reactor => $reactor,
+        keep    => {}, 
+        signals => [],
     }, $class;
 }
 
@@ -46,8 +47,8 @@ sub DESTROY {
 sub stop {
     my $self = _instance(shift);
     if (!$self->{is_ev}) {
-        $self->{reactor}->remove(delete $self->{read});
-        $self->{reactor}->remove(delete $self->{write});
+        $self->{reactor}->remove(delete $self->{read}) if $self->{read};
+        $self->{reactor}->remove(delete $self->{write}) if $self->{write};
         for my $name (keys %{$self->{keep}}) {
             $SIG{$name} = $self->{keep}{$name};
         }
@@ -55,6 +56,15 @@ sub stop {
     }
     $self->{keep} = {};
     $self;
+}
+
+sub _forked {
+    my $self = shift;
+    $self->{pid} = $$;
+    $self->{reactor}->remove(delete $self->{read}) if $self->{read};
+    $self->{reactor}->remove(delete $self->{write}) if $self->{write};
+    $self->_watch;
+    $self->{reactor}->watch($self->{write}, 0, 1) if @{$self->{signals}};
 }
 
 sub _is_signame {
@@ -67,6 +77,39 @@ sub once {
     $self->SUPER::once($name, $cb);
 }
 
+sub _watch {
+    my $self = shift;
+    pipe my $read, my $write;
+    $write->autoflush(1);
+    $self->{write} = $write;
+    $self->{read} = $read;
+    $self->{reactor}->io($read => sub {
+        my ($reactor, $w) = @_;
+        return unless $self;
+        return $self->emit(error => "writing on read pipe!") if $w;
+        return $self->_forked unless $$ eq $self->{pid};
+        my $rc = sysread $self->{read}, my $b, 1024;
+        if ($rc) {
+            $self->emit($_, $_) for splice @{$self->{signals}};
+        } else {
+            return $self->emit(error => "pipe read: $!");
+        }
+    });
+    $self->{reactor}->watch($read, 1, 0);
+    $self->{reactor}->io($write => sub {
+        my ($reactor, $w) = @_;
+        return unless $self;
+        return $self->emit(error => "reading on write pipe!") unless $w;
+        return $self->_forked unless $$ eq $self->{pid};
+        if (@{$self->{signals}}) {
+            my $rc = syswrite $self->{write}, "1"; 
+            return $self->emit(error => "pipe write: $!") unless $rc;
+        }
+        $self->{reactor}->watch($write, 0, 0);
+    });
+    $self->{reactor}->watch($write, 0, 0);
+}
+
 sub on {
     my ($self, $name, $cb) = (_instance(shift), @_);
     if ($self->_is_signame($name) and !exists $self->{keep}{$name}) {
@@ -74,40 +117,16 @@ sub on {
             $self->{keep}{$name} = EV::signal($name => sub { $self->emit($name, $name) });
         } else {
             weaken $self;
-            if (!$self->{write}) {
-                pipe my $read, my $write;
-                $write->autoflush(1);
-                $self->{write} = $write;
-                $self->{read} = $read;
-                $self->{reactor}->io($read => sub {
-                    my ($reactor, $w) = @_;
-                    return unless $self;
-                    return $self->emit(error => "writing on read pipe!") if $w;
-                    my $rc = sysread $self->{read}, my $b, 1024;
-                    if ($rc) {
-                        $self->emit($_, $_) for splice @{$self->{signals}};
-                    } else {
-                        return $self->emit(error => "pipe read: $!");
-                    }
-                });
-                $self->{reactor}->watch($read, 1, 0);
-                $self->{reactor}->io($write => sub {
-                    my ($reactor, $w) = @_;
-                    return unless $self;
-                    return $self->emit(error => "reading on write pipe!") unless $w;
-                    if (@{$self->{signals}}) {
-                        my $rc = syswrite $self->{write}, "1"; 
-                        return $self->emit(error => "pipe write: $!") unless $rc;
-                    }
-                    $self->{reactor}->watch($write, 0, 0);
-                });
-                $self->{reactor}->watch($write, 0, 0);
-            }
+            $self->_watch unless $self->{write};
             $self->{keep}{$name} = $SIG{$name} || 'DEFAULT';
             $SIG{$name} = sub {
                 return unless $self;
                 push @{$self->{signals}}, $name;
-                $self->{reactor}->watch($self->{write}, 0, 1);
+                if ($self->{write}) {
+                    $self->{reactor}->watch($self->{write}, 0, 1);
+                } else {
+                    warn "signal with closed pipe!"; 
+                }
             };
         }
     }

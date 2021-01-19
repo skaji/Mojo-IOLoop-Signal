@@ -34,7 +34,7 @@ sub parent_run {
 }
 
 sub run {
-    my $pid = fork // die;
+    my $pid = fork // die $!;
     if ($pid == 0) {
         exit child_run($ENV{MOJO_REACTOR} = $_[0]);
     } else {
