@@ -2,11 +2,10 @@ package Mojo::IOLoop::Signal;
 use Mojo::Base 'Mojo::EventEmitter';
 
 use Config;
-use IO::Handle;
-use Mojo::IOLoop;
 use Mojo::IOLoop::Stream;
+use Mojo::IOLoop;
+use Mojo::Util ();
 use Scalar::Util 'weaken';
-require Mojo::Util;
 
 our $VERSION = '0.001';
 my %SIGNAME = map { $_ => 1 } split /\s+/, $Config{sig_name};
