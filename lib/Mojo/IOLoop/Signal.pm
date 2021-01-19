@@ -6,6 +6,7 @@ use IO::Handle;
 use Mojo::IOLoop;
 use Mojo::IOLoop::Stream;
 use Scalar::Util 'weaken';
+require Mojo::Util;
 
 our $VERSION = '0.001';
 my %SIGNAME = map { $_ => 1 } split /\s+/, $Config{sig_name};
@@ -35,8 +36,7 @@ sub _new {
 }
 
 sub DESTROY {
-    my $self = shift;
-    $self->stop;
+    Mojo::Util::_global_destruction() or shift->stop;
 }
 
 sub stop {
