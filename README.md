@@ -1,4 +1,5 @@
-[![Build Status](https://travis-ci.org/skaji/Mojo-IOLoop-Signal.svg?branch=master)](https://travis-ci.org/skaji/Mojo-IOLoop-Signal)
+[![Actions Status](https://github.com/skaji/Mojo-IOLoop-Signal/workflows/linux/badge.svg)](https://github.com/skaji/Mojo-IOLoop-Signal/actions)
+[![Actions Status](https://github.com/skaji/Mojo-IOLoop-Signal/workflows/mac/badge.svg)](https://github.com/skaji/Mojo-IOLoop-Signal/actions)
 
 # NAME
 
@@ -21,7 +22,7 @@ Mojo::IOLoop::Signal is a Mojo::IOLoop based, non-blocking signal handler.
 
 # EVENTS
 
-Mojo::IOLoop::Signal inherits all events from [Mojo::EventEmitter](https://metacpan.org/pod/Mojo::EventEmitter) and can emit the following new ones.
+Mojo::IOLoop::Signal inherits all events from [Mojo::EventEmitter](https://metacpan.org/pod/Mojo%3A%3AEventEmitter) and can emit the following new ones.
 
 ## signal names such as TERM, INT, QUIT, ...
 
@@ -32,7 +33,7 @@ See `$Config{sig_name}` for a complete list.
 
 # METHODS
 
-Mojo::IOLoop::Signal inherits all methods from [Mojo::EventEmitter](https://metacpan.org/pod/Mojo::EventEmitter) and implements the following new ones.
+Mojo::IOLoop::Signal inherits all methods from [Mojo::EventEmitter](https://metacpan.org/pod/Mojo%3A%3AEventEmitter) and implements the following new ones.
 
 ## stop
 

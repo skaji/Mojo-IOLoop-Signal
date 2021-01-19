@@ -1,0 +1,21 @@
+name: macos
+
+on:
+  push:
+    branches:
+      - '*'
+    tags-ignore:
+      - '*'
+  pull_request:
+
+jobs:
+  perl:
+
+    runs-on: macOS-latest
+
+    steps:
+      - uses: actions/checkout@v2
+      - run: brew install perl
+      - run: perl -V
+      - run: curl -fsSL --compressed https://git.io/cpm | perl - install -g --with-develop --show-build-log-on-failure
+      - run: prove -lr t xt
