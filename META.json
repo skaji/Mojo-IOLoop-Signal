@@ -47,7 +47,7 @@
    "provides" : {
       "Mojo::IOLoop::Signal" : {
          "file" : "lib/Mojo/IOLoop/Signal.pm",
-         "version" : "0.001"
+         "version" : "0.002"
       }
    },
    "release_status" : "stable",
@@ -62,7 +62,7 @@
          "web" : "https://github.com/skaji/Mojo-IOLoop-Signal"
       }
    },
-   "version" : "0.001",
+   "version" : "0.002",
    "x_contributors" : [
       "Michael Green <green@strato.de>"
    ],

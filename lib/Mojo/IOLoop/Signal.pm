@@ -7,7 +7,7 @@ use Mojo::IOLoop;
 use Mojo::Util ();
 use Scalar::Util 'weaken';
 
-our $VERSION = '0.001';
+our $VERSION = '0.002';
 my %SIGNAME = map { $_ => 1 } split /\s+/, $Config{sig_name};
 our %EXCLUDE = map { $_ => 1 } qw(PIPE KILL);
 
