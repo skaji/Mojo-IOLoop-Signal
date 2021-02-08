@@ -3,5 +3,6 @@ requires 'Mojolicious', '8.71';
 
 on develop => sub {
     requires 'Test2::IPC';
+    requires 'Test::Deep';
     requires 'EV';
 };
