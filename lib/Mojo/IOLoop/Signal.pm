@@ -4,7 +4,6 @@ use Mojo::Base 'Mojo::EventEmitter';
 use Config;
 use Mojo::IOLoop::Stream;
 use Mojo::IOLoop;
-use Mojo::Util ();
 use Scalar::Util 'weaken';
 
 our $VERSION = '0.002';
@@ -41,7 +40,7 @@ sub _new {
 }
 
 sub DESTROY {
-    Mojo::Util::_global_destruction() or shift->stop;
+    shift->stop unless defined ${^GLOBAL_PHASE} && ${^GLOBAL_PHASE} eq 'DESTRUCT';
 }
 
 sub stop {
