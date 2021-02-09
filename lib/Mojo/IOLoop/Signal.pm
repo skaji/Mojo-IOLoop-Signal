@@ -40,7 +40,7 @@ sub _new {
 }
 
 sub DESTROY {
-    shift->stop unless defined ${^GLOBAL_PHASE} && ${^GLOBAL_PHASE} eq 'DESTRUCT';
+    shift->stop unless ${^GLOBAL_PHASE} eq 'DESTRUCT';
 }
 
 sub stop {
