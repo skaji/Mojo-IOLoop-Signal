@@ -23,7 +23,7 @@ sub child_run {
         note "<- got HUP"; 
         push @{$got{$who}}, 'HUP';
         note "synchronize"; 
-        Mojo::IOLoop->timer(0.21 => sub {
+        Mojo::IOLoop->timer(0.25 => sub {
             $pid = fork // die $!;
             if ($pid) {
                 note "fork";
