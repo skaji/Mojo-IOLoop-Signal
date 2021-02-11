@@ -1,47 +1,43 @@
 use strict;
 use warnings;
+
+use FindBin ();
+use lib "$FindBin::Bin/lib";
+
 use Test2::IPC;
 use Test::More;
-use Time::HiRes ();
-
-our @signals = qw(TERM INT TERM QUIT);
-
-sub child_run {
-    require Mojo::IOLoop::Signal;
-
-    is ref Mojo::IOLoop->singleton->reactor, $_[0], "using $_[0]";
-
-    my @got;
-    Mojo::IOLoop::Signal->on(TERM => sub { note "<- got TERM"; push @got, 'TERM' });
-    Mojo::IOLoop::Signal->on(INT  => sub { note "<- got INT";  push @got, 'INT'  });
-    Mojo::IOLoop::Signal->on(QUIT => sub { note "<- got QUIT"; Mojo::IOLoop::Signal->stop });
-    Mojo::IOLoop->start;
-
-    is @got, 3;
-    is $got[0], 'TERM';
-    is $got[1], 'INT';
-    is $got[2], 'TERM';
-
-    return 0;
-};
-
-sub parent_run {
-    for my $name (@signals) {
-        Time::HiRes::sleep(0.2); # XXX
-        note "-> send $name";
-        kill $name => $_[0];
-    }
-}
+use Test::Utils qw(test_run send_sig got_sig);
 
 sub run {
-    my $pid = fork // die $!;
-    if ($pid == 0) {
-        exit child_run($ENV{MOJO_REACTOR} = $_[0]);
-    } else {
-        parent_run($pid);
-        waitpid $pid, 0;
-        is $?, 0;
-    }
+	test_run(shift, [
+		{ recv => [ qw(USR1) ] },               # sender waits for child to signal start
+		{ send => [ qw(TERM INT TERM QUIT) ] }, # sender sends signals
+	], sub {
+		require Mojo::IOLoop::Signal;
+
+		my %got     = ( child  => [] );
+		my %pids    = ( sender => shift );
+		my $reactor = shift;
+
+		is ref Mojo::IOLoop->singleton->reactor, $reactor, "using $reactor";
+
+		Mojo::IOLoop::Signal->on(TERM => sub { got_sig 'child', 'TERM', \%got; });
+		Mojo::IOLoop::Signal->on(INT  => sub { got_sig 'child', 'INT',  \%got; });
+		Mojo::IOLoop::Signal->on(QUIT => sub { got_sig 'child', 'QUIT', \%got; Mojo::IOLoop::Signal->stop });
+		Mojo::IOLoop->next_tick(sub { 
+			note 'signal start';
+			send_sig 'child', 'USR1', $pids{sender};
+		});
+		Mojo::IOLoop->start;
+
+		is scalar(@{$got{child}}), 4;
+		is $got{child}[0], 'TERM';
+		is $got{child}[1], 'INT';
+		is $got{child}[2], 'TERM';
+		is $got{child}[3], 'QUIT';
+
+		return 0;
+	});
 }
 
 subtest poll => sub { run('Mojo::Reactor::Poll') };

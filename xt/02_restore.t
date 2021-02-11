@@ -1,8 +1,12 @@
 use strict;
 use warnings;
+
+use FindBin ();
+use lib "$FindBin::Bin/lib";
+
 use Test2::IPC;
 use Test::More;
-use Time::HiRes ();
+use Test::Utils qw(test_run);
 
 our %signals = (
     HUP  => sub { }, # XXX some annoymous subs for checking restore
@@ -11,55 +15,44 @@ our %signals = (
     INT  => sub { },
 );
 
-sub child_run {
-    require Mojo::IOLoop::Signal;
-
-    is ref Mojo::IOLoop->singleton->reactor, $_[0], "using $_[0]";
-
-    # NOTE replacement of %SIG only happens for Mojo::Reactor::Poll
-
-    # setup
-
-    for my $sig (sort keys %signals) {
-        $SIG{$sig} = $signals{$sig};
-    }
-
-    # replace
-
-    for my $sig (sort keys %signals) {
-        Mojo::IOLoop::Signal->singleton->on($sig => sub { });
-    }
-
-    # restore
-
-    for my $sig (sort keys %signals) {
-        Mojo::IOLoop::Signal->singleton->unsubscribe($sig);
-    }
-
-    # check
-
-    for my $sig (sort keys %signals) {
-        my $cb = $SIG{$sig};
-        is $cb, $signals{$sig}, "restored $sig";
-    }
-
-    return 0;
-};
-
-sub parent_run {
-    # nothing to do
-}
-
 sub run {
-    my $pid = fork // die $!;
-    if ($pid == 0) {
-        exit child_run($ENV{MOJO_REACTOR} = $_[0]);
-    } else {
-        parent_run($pid);
-        waitpid $pid, 0;
-        is $?, 0;
-    }
-}
+	test_run(shift, [], sub {
+		require Mojo::IOLoop::Signal;
+
+		is ref Mojo::IOLoop->singleton->reactor, $_[1], "using $_[1]";
+
+		# NOTE replacement of %SIG only happens for Mojo::Reactor::Poll
+		
+		my @sig = sort keys %signals;
+
+		# setup
+
+		for my $sig (@sig) {
+			$SIG{$sig} = $signals{$sig};
+		}
+
+		# replace
+
+		for my $sig (@sig) {
+			Mojo::IOLoop::Signal->singleton->on($sig => sub { });
+		}
+
+		# restore
+
+		for my $sig (@sig) {
+			Mojo::IOLoop::Signal->singleton->unsubscribe($sig);
+		}
+
+		# check
+
+		for my $sig (@sig) {
+			my $cb = $SIG{$sig};
+			is $cb, $signals{$sig}, "restored $sig";
+		}
+
+		return 0;
+	});
+};
 
 subtest poll => sub { run('Mojo::Reactor::Poll') };
 subtest ev   => sub { run('Mojo::Reactor::EV') };

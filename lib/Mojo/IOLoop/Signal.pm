@@ -2,7 +2,6 @@ package Mojo::IOLoop::Signal;
 use Mojo::Base 'Mojo::EventEmitter';
 
 use Config;
-use Mojo::IOLoop::Stream;
 use Mojo::IOLoop;
 use Scalar::Util 'weaken';
 
