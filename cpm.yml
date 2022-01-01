@@ -1,0 +1,9 @@
+prereqs:
+  runtime:
+    requires:
+      Mojolicious: { version: '8.71' }
+      perl: { version: '5.016' }
+  develop:
+    requires:
+      EV:
+      Test2::IPC:
