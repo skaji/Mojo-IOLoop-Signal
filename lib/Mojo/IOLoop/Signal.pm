@@ -34,7 +34,7 @@ sub _new {
     bless { keep => {}, is_ev => $is_ev }, $class;
 }
 
-sub DESTROY { shift->_cleanup unless ${^GLOBAL_PHASE} eq 'DESTRUCT' }
+sub DESTROY { shift->stop unless ${^GLOBAL_PHASE} eq 'DESTRUCT' }
 
 sub stop {
     my $self = _instance(shift);
