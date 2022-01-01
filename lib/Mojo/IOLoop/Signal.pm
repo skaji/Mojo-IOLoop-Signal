@@ -34,9 +34,7 @@ sub _new {
     bless { keep => {}, is_ev => $is_ev }, $class;
 }
 
-sub DESTROY {
-    Mojo::Util::_global_destruction() or shift->stop;
-}
+sub DESTROY { shift->_cleanup unless ${^GLOBAL_PHASE} eq 'DESTRUCT' }
 
 sub stop {
     my $self = _instance(shift);
