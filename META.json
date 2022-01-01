@@ -27,7 +27,7 @@
       },
       "runtime" : {
          "requires" : {
-            "Mojolicious" : "8.71",
+            "Mojolicious" : "9.22",
             "perl" : "5.016"
          }
       }

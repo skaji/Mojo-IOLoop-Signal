@@ -1,7 +1,7 @@
 prereqs:
   runtime:
     requires:
-      Mojolicious: { version: '8.71' }
+      Mojolicious: { version: '9.22' }
       perl: { version: '5.016' }
   develop:
     requires:
