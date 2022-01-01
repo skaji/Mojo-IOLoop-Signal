@@ -9,7 +9,7 @@ use Scalar::Util 'weaken';
 
 our $VERSION = '0.002';
 my %SIGNAME = map { $_ => 1 } split /\s+/, $Config{sig_name};
-our %EXCLUDE = map { $_ => 1 } qw(PIPE KILL);
+our %EXCLUDE = map { $_ => 1 } qw(PIPE KILL ZERO);
 
 sub _instance {
     state $SELF = __PACKAGE__->_new;
@@ -31,7 +31,12 @@ sub _new {
     } else {
         die "Unsupported reactor: " . ref($reactor);
     }
-    bless { keep => {}, is_ev => $is_ev }, $class;
+    bless { 
+        keep    => {}, 
+        is_ev   => $is_ev, 
+        signals => [],
+        reactor => $reactor,
+    }, $class;
 }
 
 sub DESTROY { shift->stop unless ${^GLOBAL_PHASE} eq 'DESTRUCT' }
@@ -39,15 +44,12 @@ sub DESTROY { shift->stop unless ${^GLOBAL_PHASE} eq 'DESTRUCT' }
 sub stop {
     my $self = _instance(shift);
     if (!$self->{is_ev}) {
-        if ($self->{write}) {
-            $self->{write}->close;
-            $self->{read}->stop;
-            $self->{read}->close_gracefully;
-            delete $self->{$_} for qw(write read);
-        }
+        $self->{reactor}->remove(delete $self->{read});
+        $self->{reactor}->remove(delete $self->{write});
         for my $name (keys %{$self->{keep}}) {
             $SIG{$name} = $self->{keep}{$name};
         }
+        $self->emit($_, $_) for splice @{$self->{signals}};
     }
     $self->{keep} = {};
     $self;
@@ -69,24 +71,41 @@ sub on {
         if ($self->{is_ev}) {
             $self->{keep}{$name} = EV::signal($name => sub { $self->emit($name, $name) });
         } else {
+            weaken $self;
             if (!$self->{write}) {
                 pipe my $read, my $write;
                 $write->autoflush(1);
-                $self->{read} = Mojo::IOLoop::Stream->new($read),
-                $self->{read}->timeout(0);
                 $self->{write} = $write;
-                weaken $self;
-                $self->{read}->on(read => sub {
-                    my (undef, $bytes) = @_;
-                    $self->emit($_, $_) for split /\n/, $bytes;
+                $self->{read} = $read;
+                $self->{reactor}->io($read => sub {
+                    my ($reactor, $w) = @_;
+                    return unless $self;
+                    return $self->emit(error => "writing on read pipe!") if $w;
+                    my $rc = sysread $self->{read}, my $b, 1024;
+                    if ($rc) {
+                        $self->emit($_, $_) for splice @{$self->{signals}};
+                    } else {
+                        return $self->emit(error => "pipe read: $!");
+                    }
                 });
-                $self->{read}->start;
+                $self->{reactor}->watch($read, 1, 0);
+                $self->{reactor}->io($write => sub {
+                    my ($reactor, $w) = @_;
+                    return unless $self;
+                    return $self->emit(error => "reading on write pipe!") unless $w;
+                    if (@{$self->{signals}}) {
+                        my $rc = syswrite $self->{write}, "1"; 
+                        return $self->emit(error => "pipe write: $!") unless $rc;
+                    }
+                    $self->{reactor}->watch($write, 0, 0);
+                });
+                $self->{reactor}->watch($write, 0, 0);
             }
             $self->{keep}{$name} = $SIG{$name} || 'DEFAULT';
             $SIG{$name} = sub {
-                Mojo::IOLoop->timer(0 => sub {
-                    syswrite $self->{write}, "$name\n" or warn "pipe write: $!";
-                });
+                return unless $self;
+                push @{$self->{signals}}, $name;
+                $self->{reactor}->watch($self->{write}, 0, 1);
             };
         }
     }
