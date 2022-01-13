@@ -9,12 +9,14 @@ my $test = sub {
     require Mojo::IOLoop;
     require Mojo::IOLoop::Signal;
 
-    Mojo::IOLoop->timer(0.2 => sub { syswrite $write, "READY\n"; close $write });
+    my $tick = sub { syswrite $write, "x\n" };
 
     my @got;
-    Mojo::IOLoop::Signal->on(TERM => sub { note "<- got TERM"; push @got, 'TERM' });
-    Mojo::IOLoop::Signal->on(INT  => sub { note "<- got INT";  push @got, 'INT'  });
+    Mojo::IOLoop::Signal->on(TERM => sub { note "<- got TERM"; push @got, 'TERM'; $tick->() });
+    Mojo::IOLoop::Signal->on(INT  => sub { note "<- got INT";  push @got, 'INT'; $tick->()  });
     Mojo::IOLoop::Signal->on(QUIT => sub { note "<- got QUIT"; Mojo::IOLoop::Signal->stop });
+
+    Mojo::IOLoop->timer(0 => $tick);
     Mojo::IOLoop->start;
 
     is @got, 3;
@@ -33,9 +35,9 @@ subtest poll => sub {
         exit;
     } else {
         close $write;
-        my $ready = <$read>;
+        my $tick = sub { scalar <$read> };
         for my $name (qw(TERM INT TERM QUIT)) {
-            Time::HiRes::sleep(0.2); # XXX
+            $tick->();
             note "-> send $name";
             kill $name => $pid;
         }
@@ -54,9 +56,9 @@ subtest ev => sub {
         exit;
     } else {
         close $write;
-        my $ready = <$read>;
+        my $tick = sub { scalar <$read> };
         for my $name (qw(TERM INT TERM QUIT)) {
-            Time::HiRes::sleep(0.2); # XXX
+            $tick->();
             note "-> send $name";
             kill $name => $pid;
         }
